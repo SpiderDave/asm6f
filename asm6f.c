@@ -704,9 +704,12 @@ bin:		j=*s;
 	} else {	//label---------------
 		p=findlabel(gvline);
 		if(!p) {//label doesn't exist (yet?)
-			needanotherpass=dependant=1;
+			// I rewrote this part a bit to prevent a crash if nothing has been
+			// written yet.  I'm not sure if it's right.  --SpiderDave
 			if(lastchance) {//only show error once we're certain label will never exist
 				errmsg=UnknownLabel;
+			} else {
+				needanotherpass=dependant=1;
 			}
 		} else {
 			dependant|=!(*p).line;
