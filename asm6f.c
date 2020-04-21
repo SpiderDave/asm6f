@@ -44,6 +44,8 @@
 
 #define VERSION "1.6"
 
+#define URL "https://github.com/SpiderDave/asm6f"
+
 #define addr firstlabel.value	// '$' value
 #define NOORIGIN -0x40000000	// nice even number so aligning works before origin is defined
 #define INITLISTSIZE 128		// initial label list size
@@ -1798,7 +1800,7 @@ badlabel:
 
 void showhelp(void) {
 	puts("");
-	puts("asm6f " VERSION " (+ freem modifications)\n");
+	puts("asm6f " VERSION " (+ freem modifications) \n" URL "\n");
 	puts("Usage:  asm6f [-options] sourcefile [outputfile] [listfile]\n");
 	puts("\t-?\t\tshow this help");
 	puts("\t-l\t\tcreate listing");

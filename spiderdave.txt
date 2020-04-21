@@ -24,6 +24,15 @@ TEXTMAPTO
                 TEXT "TEST"
 
 
+IFFILEEXIST/IFFILE
+
+        Process a block of code if a file exists.
+
+                IFFILEEXIST "file.ext"
+                    .
+                    .
+                    .
+                ENDIF
 
 --------------------------------------------------------------
 todo and notes:
@@ -33,5 +42,9 @@ todo and notes:
 * add OPTION directive
 * textmapfrom, textmapto
     Should use quotes (optionally?) to surround the data, and still be able to use a quote character inside.
+    Add proper errors for non-hex characters.
+    Allow multiple textmaps
 * fix up all error messages to give more information.
 * make a single readme
+* fileexist directive
+    raise errors for extra characters, missing filename, etc.
