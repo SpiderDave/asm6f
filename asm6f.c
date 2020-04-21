@@ -48,6 +48,7 @@
 #define NOORIGIN -0x40000000	// nice even number so aligning works before origin is defined
 #define INITLISTSIZE 128		// initial label list size
 #define BUFFSIZE 8192			// file buffer (inputbuff, outputbuff) size
+#define ERRBUFF 100				// error message buffer size
 #define WORDMAX 128				// used with getword()
 #define LINEMAX 2048			// plenty of room for nested equates
 #define MAXPASSES 7				// # of tries before giving up
@@ -189,6 +190,10 @@ void expandrept(int,char*);
 void make_error(label*,char**);
 void unstable(label*,char**);
 void hunstable(label*,char**);
+void print(label*,char**);
+void textMapFrom(label*,char**);
+void textMapTo(label*,char**);
+void dbex(label*,char**);
 
 // [freem addition (from asm6_sonder.c)]
 int filepos=0;
@@ -423,6 +428,9 @@ struct {
 		{"NES2CHRBRAM",nes2chrbram},
 		{"UNSTABLE",unstable},
 		{"HUNSTABLE",hunstable},
+		{"PRINT",print},
+		{"TEXTMAPFROM",textMapFrom},{"TEXTMAPTO",textMapTo},
+		{"TEXT",dbex},
 		{0, 0}
 };
 
@@ -433,12 +441,12 @@ char NotANumber[]="Not a number.";
 char UnknownLabel[]="Unknown label.";
 char Illegal[]="Illegal instruction.";
 char IncompleteExp[]="Incomplete expression.";
-char LabelDefined[]="Label already defined.";
+char LabelDefined[]="Label already defined (%s).";
 char MissingOperand[]="Missing operand.";
 char DivZero[]="Divide by zero.";
 char BadAddr[]="Can't determine address.";
 char NeedName[]="Need a name.";
-char CantOpen[]="Can't open file.";
+char CantOpen[]="Can't open file (%s).";
 char ExtraENDM[]="ENDM without MACRO.";
 char ExtraENDR[]="ENDR without REPT.";
 char ExtraENDE[]="ENDE without ENUM.";
@@ -456,6 +464,9 @@ char undefinedPC[]="PC is undefined (use ORG first)";
 char whitesp[]=" \t\r\n:";  //treat ":" like whitespace (for labels)
 char whitesp2[]=" \t\r\n\"";	//(used for filename processing)
 char tmpstr[LINEMAX];   //all purpose big string
+
+char textMap1[LINEMAX]; // textMapFrom
+char textMap2[LINEMAX]; // textMapTo
 
 int pass=0;
 int scope;//current scope, 0=global
@@ -1362,6 +1373,8 @@ void export_mesenlabels() {
 void addlabel(char *word, int local) {
 	char c=*word;
 	label *p=findlabel(word);
+	char msg[ERRBUFF];
+	
 	if(p && local && !(*p).scope && (*p).type!=VALUE) //if it's global and we're local
 		p=0;//pretend we didn't see it (local label overrides global of the same name)
 	//global labels advance scope
@@ -1396,7 +1409,8 @@ void addlabel(char *word, int local) {
 			if((*p).type==VALUE)
 				return;
 			else
-				errmsg=LabelDefined;
+				sprintf(msg, LabelDefined, (*p).name);
+				errmsg=my_strdup(*&msg);
 		} else {//first time seen on this pass or (-) label
 			(*p).pass=pass;
 			if((*p).type==LABEL) {
@@ -2138,6 +2152,8 @@ void listline(char *src,char *comment) {
 void equ(label *id, char **next) {
 	char str[LINEMAX];
 	char *s=*next;
+	char msg[ERRBUFF];
+	
 	if(!labelhere)
 		errmsg=NeedName;//EQU without a name
 	else {
@@ -2151,7 +2167,8 @@ void equ(label *id, char **next) {
 				errmsg=IncompleteExp;
 			}
 		} else if((*labelhere).type!=EQUATE) {
-			errmsg=LabelDefined;
+			sprintf(msg, LabelDefined, (*labelhere).name);
+			errmsg=my_strdup(*&msg);
 		}
 		*s=0;//end line
 	}
@@ -2182,16 +2199,58 @@ void base(label *id, char **next) {
 void nothing(label *id, char **next) {
 }
 
+void print(label *id, char **next) {
+	char *txt;
+	
+	eatwhitespace(next);
+	txt=*next;
+	
+	printf("%s", txt);
+	
+	*next=txt+strlen(txt);
+}
+
+void textMapFrom(label *id,char **next) {
+	char *s;
+	char quote;
+	char *end;
+	int len;
+	eatwhitespace(next);
+	s=*next;
+	
+	strncpy(textMap1,s,strlen(s));
+	textMap1[strlen(s)]=0;
+	
+	*next=s+strlen(s);
+}
+    
+void textMapTo(label *id,char **next) {
+	char *s;
+	char quote;
+	char *end;
+	int len;
+	eatwhitespace(next);
+	s=*next;
+
+	strncpy(textMap2,s,strlen(s));
+	textMap2[strlen(s)]=0;
+
+	*next=s+strlen(s);
+}
+
+
 void include(label *id,char **next) {
 	char *np;
 	FILE *f;
+	char msg[ERRBUFF];
 
 	np=*next;
 	reverse(tmpstr,np+strspn(np,whitesp2));	 //eat whitesp off both ends
 	reverse(np,tmpstr+strspn(tmpstr,whitesp2));
 	f=fopen(np,"r+");   //read as text, the + makes recursion not possible
 	if(!f) {
-		errmsg=CantOpen;
+		sprintf(msg, CantOpen, np);
+		errmsg=my_strdup(*&msg);
 		error=1;
 	} else {
 		processfile(f,np);
@@ -2204,12 +2263,14 @@ void include(label *id,char **next) {
 void incbin(label *id,char **next) {
 	int filesize, seekpos, bytesleft, i;
 	FILE *f=0;
+	char msg[ERRBUFF];
 
 	do {
 	//file open:
 		getfilename(tmpstr,next);
 		if(!(f=fopen(tmpstr,"rb"))) {
-			errmsg=CantOpen;
+			sprintf(msg, CantOpen, tmpstr);
+			errmsg=my_strdup(*&msg);
 			break;
 		}
 		fseek(f,0,SEEK_END);
@@ -2298,6 +2359,74 @@ void dh(label *id, char **next) {
 		val=eval(next,WHOLEEXP)>>8;
 		if(!errmsg)
 			output(&val,1,DATA);
+	} while(!errmsg && eatchar(next,','));
+}
+
+void dbex(label *id,char **next) {
+	int val,val2;
+	byte *s,*start;
+	char c,quote;
+	
+	int b1,b2;
+	
+	do {
+		*next+=strspn(*next,whitesp);	   //eatwhitespace
+		quote=**next;
+		if(quote=='"' || quote=='\'') { //string
+			s=start=(byte*)*next+1;
+			do {
+				c=*s;
+				s++;
+				if(!c) errmsg=IncompleteExp;
+				if(c=='\\') s++;
+			} while(!errmsg && c!=quote);
+			if(errmsg) continue;
+			s--;	//point to the "
+			*s='0';
+			*next=(char*)s;
+			val2=eval(next,WHOLEEXP);
+			if(errmsg) continue;
+			while(start!=s) {
+				if(*start=='\\')
+					start++;
+				val=(int) (strchr(textMap1, *start+val2) - textMap1);
+				
+				b1 = textMap2[val*2];
+				b2 = textMap2[val*2+1];
+				if ((b1>=0x30) && (b1<=0x39)) {
+					b1=b1-0x30;
+				} else if (b1>=0x41 && b1<=0x46) {
+					b1=b1-0x41+0x0a;
+				} else if (b1>=0x61 && b1<=0x66) {
+					b1=b1-0x61+0x0a;
+				} else {
+					b1=0;
+				}
+				
+				if (b2>=0x30 && b2<=0x39) {
+					b2=b2-0x30;
+				} else if (b2>=0x41 && b2<=0x46) {
+					b2=b2-0x41+0x0a;
+				} else if (b2>=0x61 && b2<=0x66) {
+					b2=b2-0x61+0x0a;
+				} else {
+					b2=0;
+				}
+				
+				val=(b1*0x10)+b2;
+				
+				start++;
+				output_le(val,1,DATA);
+			}
+		} else {
+			val=eval(next,WHOLEEXP);
+			if(!errmsg) {
+				if(val>255 || val<-128)
+					errmsg=OutOfRange;
+				else
+					output_le(val,1,DATA);
+			}
+		}
 	} while(!errmsg && eatchar(next,','));
 }
 
@@ -2568,6 +2697,7 @@ void macro(label *id, char **next) {
 	char *src;
 	char word[WORDMAX];
 	int params;
+	char msg[ERRBUFF];
 	
 	labelhere=0;
 	if(getlabel(word,next))
@@ -2597,7 +2727,8 @@ void macro(label *id, char **next) {
 		(*labelhere).value=params;//set param count
 		*makemacro=0;
 	} else if((*labelhere).type!=MACRO) {
-		errmsg=LabelDefined;
+		sprintf(msg, LabelDefined, (*labelhere).name);
+		errmsg=my_strdup(*&msg);
 	} else {//macro was defined on a previous pass.. skip past params
 		**next=0;
 	}

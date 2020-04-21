@@ -1,0 +1,37 @@
+--------------------------------------------------------------
+Additional assembler directives
+--------------------------------------------------------------
+
+PRINT
+
+        Print text to console.
+        Useful for displaying extra information.
+
+                PRINT Hello World!
+
+
+TEXT
+TEXTMAPFROM
+TEXTMAPTO
+
+        Define and use textmaps.  The TEXT directive is similar to "DB", but it
+        uses a textmap defined with TEXTMAPFROM and TEXTMAPTO.
+        
+                TEXTMAPFROM 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ x-!.c
+                TEXTMAPTO 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232428292bafcf
+
+                ; outputs 1D 0E 1C 1D
+                TEXT "TEST"
+
+
+
+--------------------------------------------------------------
+todo and notes:
+--------------------------------------------------------------
+
+* add TIME, DATE directives or symbols
+* add OPTION directive
+* textmapfrom, textmapto
+    Should use quotes (optionally?) to surround the data, and still be able to use a quote character inside.
+* fix up all error messages to give more information.
+* make a single readme
