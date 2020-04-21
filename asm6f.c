@@ -2126,11 +2126,10 @@ void listline(char *src,char *comment) {
 	}
 	listcount=0;
 	if(src) {
-			if(addr<0) {
+			if(addr<0)
 				fprintf(listfile,"     ");
-			} else {
+			else
 				fprintf(listfile,"%05X",(int)addr);
-			}
 		strcpy(srcbuff,src);//make a copy of the original source line
 		if ((srcbuff[(strlen(srcbuff)-1)]) !=0x0a)
 			strcat(srcbuff, "\n");
