@@ -194,6 +194,7 @@ void print(label*,char**);
 void textMapFrom(label*,char**);
 void textMapTo(label*,char**);
 void dbex(label*,char**);
+void iffileexist(label*,char**);
 
 // [freem addition (from asm6_sonder.c)]
 int filepos=0;
@@ -431,6 +432,7 @@ struct {
 		{"PRINT",print},
 		{"TEXTMAPFROM",textMapFrom},{"TEXTMAPTO",textMapTo},
 		{"TEXT",dbex},
+		{"IFFILEEXIST",iffileexist},{"IFFILE",iffileexist},
 		{0, 0}
 };
 
@@ -2403,6 +2405,8 @@ void dbex(label *id,char **next) {
 					b1=b1-0x61+0x0a;
 				} else {
 					b1=0;
+					// The error will happen on text but it should happen on textmapfrom
+					errmsg=OutOfRange;
 				}
 				
 				if (b2>=0x30 && b2<=0x39) {
@@ -2413,6 +2417,8 @@ void dbex(label *id,char **next) {
 					b2=b2-0x61+0x0a;
 				} else {
 					b2=0;
+					// The error will happen on text but it should happen on textmapfrom
+					errmsg=OutOfRange;
 				}
 				
 				val=(b1*0x10)+b2;
@@ -2686,6 +2692,31 @@ void _else(label *id,char **next) {
 void endif(label *id,char **next) {
 	if(iflevel) --iflevel;
 	else errmsg="ENDIF without IF.";
+}
+
+
+int cfileexists(const char * filename){
+    /* try to open file to read */
+    FILE *file;
+    if (file = fopen(filename, "r")){
+        fclose(file);
+        return 1;
+    }
+    return 0;
+}
+
+void iffileexist(label *id,char **next) {
+	char s[WORDMAX];
+	
+	getfilename(tmpstr,next);
+	
+	if(iflevel>=IFNESTS-1)
+		errmsg=IfNestLimit;
+	else
+		iflevel++;
+	skipline[iflevel]=!cfileexists(tmpstr) || skipline[iflevel-1];
+	ifdone[iflevel]=!skipline[iflevel];
+	*next=tmpstr+strlen(tmpstr);
 }
 
 void endm(label *id, char **next) {//ENDM is handled during macro definition (see processline)
