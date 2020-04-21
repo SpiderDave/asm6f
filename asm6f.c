@@ -439,10 +439,11 @@ struct {
 };
 
 char OutOfRange[]="Value out of range.";
+char BranchOutOfRange[]="Branch out of range (%d).";
 char SeekOutOfRange[]="Seek position out of range.";
 char BadIncbinSize[]="INCBIN size is out of range.";
 char NotANumber[]="Not a number.";
-char UnknownLabel[]="Unknown label.";
+char UnknownLabel[]="Unknown label (%s).";
 char Illegal[]="Illegal instruction.";
 char IncompleteExp[]="Incomplete expression.";
 char LabelDefined[]="Label already defined (%s).";
@@ -639,6 +640,7 @@ int getvalue(char **str) {
 	char *s,*end;
 	int ret,chars,j;
 	label *p;
+	char msg[ERRBUFF];
 
 	getword(gvline,str,1);
 
@@ -707,7 +709,8 @@ bin:		j=*s;
 			// I rewrote this part a bit to prevent a crash if nothing has been
 			// written yet.  I'm not sure if it's right.  --SpiderDave
 			if(lastchance) {//only show error once we're certain label will never exist
-				errmsg=UnknownLabel;
+				sprintf(msg, UnknownLabel, gvline);
+				errmsg=my_strdup(*&msg);
 			} else {
 				needanotherpass=dependant=1;
 			}
@@ -719,7 +722,8 @@ bin:		j=*s;
 			} else if((*p).type==MACRO) {
 				errmsg="Can't use macro in expression.";
 			} else {//what else is there?
-				errmsg=UnknownLabel;
+				sprintf(msg, UnknownLabel, gvline);
+				errmsg=my_strdup(*&msg);
 			}
 		}
 	}
@@ -2580,6 +2584,8 @@ void opcode(label *id, char **next) {
 		errmsg=0;
 		type=op[1];
 		s=tmpstr;
+		char msg[ERRBUFF];
+		
 		if(type!=IMP && type!=ACC) {//get operand
 			if(!eatchar(&s,ophead[type])) continue;
 			val=eval(&s,WHOLEEXP);
@@ -2590,7 +2596,8 @@ void opcode(label *id, char **next) {
 						needanotherpass=1;//give labels time to sort themselves out..
 						if(lastchance)
 						{
-							errmsg="Branch out of range.";
+							sprintf(msg, BranchOutOfRange, val);
+							errmsg=my_strdup(*&msg);
 							forceRel = 1;
 						}
 					}
