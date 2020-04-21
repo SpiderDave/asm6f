@@ -2126,11 +2126,14 @@ void listline(char *src,char *comment) {
 	}
 	listcount=0;
 	if(src) {
-		if(addr<0)
-			fprintf(listfile,"     ");
-		else
-			fprintf(listfile,"%05X",(int)addr);
+			if(addr<0) {
+				fprintf(listfile,"     ");
+			} else {
+				fprintf(listfile,"%05X",(int)addr);
+			}
 		strcpy(srcbuff,src);//make a copy of the original source line
+		if ((srcbuff[(strlen(srcbuff)-1)]) !=0x0a)
+			strcat(srcbuff, "\n");
 		if(comment) {
 			strcat(srcbuff, comment);
 			if(genmesenlabels && filepos > 0 && addr < 0x10000) {
