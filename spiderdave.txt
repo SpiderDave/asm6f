@@ -48,3 +48,4 @@ todo and notes:
 * make a single readme
 * fileexist directive
     raise errors for extra characters, missing filename, etc.
+* allow command line switches larger than one character.

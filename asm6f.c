@@ -517,6 +517,7 @@ int nonl=0;//[freem addition] supress output to .nl files
 int defaultfiller;//default fill value
 int insidemacro=0;//macro/rept is being expanded
 int verbose=1;
+int clip=0; // clip this many bytes from the start of the file.  The -r (raw) option sets it to 16.
 
 static void* ptr_from_bool( int b )
 {
@@ -1811,7 +1812,8 @@ void showhelp(void) {
 	puts("\t-n\t\texport FCEUX-compatible .nl files");
 	puts("\t-f\t\texport Lua symbol file");
 	puts("\t-c\t\texport .cdl for use with FCEUX/Mesen");
-	puts("\t-m\t\texport Mesen-compatible label file (.mlb)\n");
+	puts("\t-m\t\texport Mesen-compatible label file (.mlb)");
+	puts("\t-r\t\traw output. Removes the first 16 bytes of the file.\n");
 	puts("See README.TXT for more info.\n");
 }
 
@@ -1888,6 +1890,9 @@ int main(int argc,char **argv) {
 					break;
 				case 'f':
 					genlua=1;
+					break;
+				case 'r':
+					clip=16;
 					break;
 				default:
 					fatal_error("unknown option: %s",argv[i]);
@@ -1969,7 +1974,7 @@ int main(int argc,char **argv) {
 	if(outputfile) {
 		// Be sure last of output file is written properly
 		int result;
-		if ( fwrite(outputbuff,1,outcount,outputfile) < (size_t)outcount || fflush( outputfile ) )
+		if ( fwrite(outputbuff+clip,1,outcount-clip,outputfile) < (size_t)outcount-clip || fflush( outputfile ) )
 			fatal_error( "Write error." );
 		
 		i=ftell(outputfile);
