@@ -40,6 +40,8 @@ todo and notes:
 
 * add TIME, DATE directives or symbols
 * add OPTION directive
+* add ability to include all files in a folder.  have include (and incbin?) check
+  if the parameter is a folder, and if so, include all .asm or .inc.
 * textmapfrom, textmapto
     Should use quotes (optionally?) to surround the data, and still be able to use a quote character inside.
     Add proper errors for non-hex characters.
