@@ -1997,7 +1997,7 @@ int main(int argc,char **argv) {
 			remove(outputfilename);
 	} else {
 		if(!error)
-			fputs("nothing to do!", stderr);
+			fputs("nothing to do!\n", stderr);
 		error = 1;
 	}
 	if(listfile)
@@ -2147,8 +2147,8 @@ void listline(char *src,char *comment) {
 			else
 				fprintf(listfile,"%05X",(int)addr);
 		strcpy(srcbuff,src);//make a copy of the original source line
-		if ((srcbuff[(strlen(srcbuff)-1)]) !=0x0a)
-			strcat(srcbuff, "\n");
+		//if ((srcbuff[(strlen(srcbuff)-1)]) !=0x0a) && (strlen(srcbuff)>0)
+		//	strcat(srcbuff, "\n");
 		if(comment) {
 			strcat(srcbuff, comment);
 			if(genmesenlabels && filepos > 0 && addr < 0x10000) {
@@ -2223,7 +2223,10 @@ void print(label *id, char **next) {
 	eatwhitespace(next);
 	txt=*next;
 	
-	printf("%s", txt);
+	// Avoid printing text twice sometimes.
+	if (pass==1) {
+		printf("%s", txt);
+	}
 	
 	*next=txt+strlen(txt);
 }
@@ -2255,7 +2258,6 @@ void textMapTo(label *id,char **next) {
 
 	*next=s+strlen(s);
 }
-
 
 void include(label *id,char **next) {
 	char *np;
